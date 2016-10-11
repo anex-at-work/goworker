@@ -2,9 +2,11 @@ package goworker
 
 import (
 	"bytes"
+  "strings"
 	"encoding/json"
 	"fmt"
 	"time"
+  "github.com/garyburd/redigo/redis"
 )
 
 type poller struct {
@@ -45,7 +47,36 @@ func (p *poller) getJob(conn *RedisConn) (*Job, error) {
 				return nil, err
 			}
 			return job, nil
-		}
+		} else {
+      key := fmt.Sprintf("%szqueue:%s", workerSettings.Namespace, queue)
+      if _, err := conn.Do("WATCH", key); nil != err {
+        return nil, err
+      }
+
+      queues, err := redis.Strings(conn.Do("ZRANGEBYSCORE", key, 0, time.Now().Unix()))
+      if nil != err {
+        return nil, err
+      }
+      if 0 == len(queues) {
+        return nil, nil
+      }
+      conn.Send("MULTI")
+      conn.Send("ZREM", key, queues[0])
+      if _, err = conn.Do("Exec"); nil != err {
+        return nil, err
+      }
+
+      logger.Debugf("Found job on %s", queue)
+      job := &Job{Queue: queue}
+			decoder := json.NewDecoder(strings.NewReader(queues[0]))
+      if workerSettings.UseNumber {
+        decoder.UseNumber()
+      }
+      if err := decoder.Decode(&job.Payload); err != nil {
+				return nil, err
+			}
+			return job, nil
+    }
 	}
 
 	return nil, nil
@@ -114,7 +145,6 @@ func (p *poller) poll(interval time.Duration, quit <-chan bool) <-chan *Job {
 							logger.Criticalf("Error on getting connection in poller %s", p)
 							return
 						}
-
 						conn.Send("LPUSH", fmt.Sprintf("%squeue:%s", workerSettings.Namespace, job.Queue), buf)
 						conn.Flush()
 						return

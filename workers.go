@@ -47,3 +47,34 @@ func Enqueue(job *Job) error {
 
 	return conn.Flush()
 }
+
+func EnqueueAt(job *JobAt) error {
+	err := Init()
+	if err != nil {
+		return err
+	}
+
+	conn, err := GetConn()
+	if err != nil {
+		logger.Criticalf("Error on getting connection on enqueue")
+		return err
+	}
+	defer PutConn(conn)
+  runAt := float64(job.RunAt.UnixNano()) / 1e+9
+	buffer, err := json.Marshal(PayloadAt{
+    Class: job.Payload.Class,
+    Args: job.Payload.Args,
+    RunAt: runAt,
+  })
+	if err != nil {
+		logger.Criticalf("Cant marshal payload on enqueue")
+		return err
+	}
+	err = conn.Send("ZADD", fmt.Sprintf("%szqueue:%s", workerSettings.Namespace, job.Queue), runAt, buffer)
+	if err != nil {
+		logger.Criticalf("Cant add to sorted set")
+		return err
+	}
+
+	return conn.Flush()
+}

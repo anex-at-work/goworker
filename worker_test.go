@@ -2,6 +2,7 @@ package goworker
 
 import (
 	"reflect"
+  "time"
 	"testing"
 )
 
@@ -60,6 +61,49 @@ func TestEnqueue(t *testing.T) {
 		t.Errorf("Error while enqueue %s", err)
 	}
 
+	actualArgs := []interface{}{}
+	actualQueueName := ""
+	Register(jobName, func(queue string, args ...interface{}) error {
+		actualArgs = args
+		actualQueueName = queue
+		return nil
+	})
+	if err := Work(); err != nil {
+		t.Errorf("(Enqueue) Failed on work %s", err)
+	}
+	if !reflect.DeepEqual(actualArgs, expectedArgs) {
+		t.Errorf("(Enqueue) Expected %v, actual %v", actualArgs, expectedArgs)
+	}
+	if !reflect.DeepEqual(actualQueueName, queueName) {
+		t.Errorf("(Enqueue) Expected %v, actual %v", actualQueueName, queueName)
+	}
+}
+
+func TestEnqueueAt(t *testing.T) {
+	expectedArgs := []interface{}{"a", "lot", "of", "params"}
+	jobName := "SomethingCool"
+	queueName := "testQueue"
+  runAt := time.Now().Add(time.Second * 1)
+	expectedJob := &JobAt{
+		Queue: queueName,
+		Payload: Payload{
+			Class: jobName,
+			Args:  expectedArgs,
+		},
+    RunAt: runAt,
+	}
+
+	workerSettings.Queues = []string{queueName}
+	workerSettings.UseNumber = true
+	workerSettings.ExitOnComplete = true
+  workerSettings.Concurrency = 1
+
+  err := EnqueueAt(expectedJob)
+  if err != nil {
+    t.Errorf("Error while enqueue %s", err)
+  }
+
+  time.Sleep(2500 * time.Millisecond)
 	actualArgs := []interface{}{}
 	actualQueueName := ""
 	Register(jobName, func(queue string, args ...interface{}) error {
