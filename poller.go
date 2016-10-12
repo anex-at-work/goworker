@@ -58,7 +58,7 @@ func (p *poller) getJob(conn *RedisConn) (*Job, error) {
         return nil, err
       }
       if 0 == len(queues) {
-        return nil, nil
+        continue
       }
       conn.Send("MULTI")
       conn.Send("ZREM", key, queues[0])
