@@ -2,8 +2,8 @@ package goworker
 
 import (
 	"reflect"
-  "time"
 	"testing"
+	"time"
 )
 
 var workerMarshalJSONTests = []struct {
@@ -83,27 +83,27 @@ func TestEnqueueAt(t *testing.T) {
 	expectedArgs := []interface{}{"a", "lot", "of", "params"}
 	jobName := "SomethingCool"
 	queueName := "testQueue"
-  runAt := time.Now().Add(time.Second * 1)
+	runAt := time.Now().Add(time.Second * 1)
 	expectedJob := &JobAt{
 		Queue: queueName,
 		Payload: Payload{
 			Class: jobName,
 			Args:  expectedArgs,
 		},
-    RunAt: runAt,
+		RunAt: runAt,
 	}
 
 	workerSettings.Queues = []string{queueName}
 	workerSettings.UseNumber = true
 	workerSettings.ExitOnComplete = true
-  workerSettings.Concurrency = 1
+	workerSettings.Concurrency = 1
 
-  err := EnqueueAt(expectedJob)
-  if err != nil {
-    t.Errorf("Error while enqueue %s", err)
-  }
+	err := EnqueueAt(expectedJob)
+	if err != nil {
+		t.Errorf("Error while enqueue %s", err)
+	}
 
-  time.Sleep(2500 * time.Millisecond)
+	time.Sleep(2500 * time.Millisecond)
 	actualArgs := []interface{}{}
 	actualQueueName := ""
 	Register(jobName, func(queue string, args ...interface{}) error {

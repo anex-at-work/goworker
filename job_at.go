@@ -1,11 +1,11 @@
 package goworker
 
 import (
-  "time"
+	"time"
 )
 
 type JobAt struct {
-  Queue   string
+	Queue   string
 	Payload Payload
-  RunAt time.Time
+	RunAt   time.Time
 }

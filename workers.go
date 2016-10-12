@@ -60,12 +60,12 @@ func EnqueueAt(job *JobAt) error {
 		return err
 	}
 	defer PutConn(conn)
-  runAt := float64(job.RunAt.UnixNano()) / 1e+9
+	runAt := float64(job.RunAt.UnixNano()) / 1e+9
 	buffer, err := json.Marshal(PayloadAt{
-    Class: job.Payload.Class,
-    Args: job.Payload.Args,
-    RunAt: runAt,
-  })
+		Class: job.Payload.Class,
+		Args:  job.Payload.Args,
+		RunAt: runAt,
+	})
 	if err != nil {
 		logger.Criticalf("Cant marshal payload on enqueue")
 		return err
